@@ -10,6 +10,7 @@ public class Activity {
 		iconPathOn = newOnPath;
 		iconPathOff = newOffPath;
 		activityName = newActivityName;
+		activityScore = 0;
 	}
 	
 	public Activity(String newActivityName, String newOnPath, String newOffPath, int newScore) {

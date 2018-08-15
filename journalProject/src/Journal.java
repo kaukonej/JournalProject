@@ -11,6 +11,7 @@ import java.nio.file.Paths;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
+import java.util.Optional;
 import java.util.Scanner;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipOutputStream;
@@ -22,6 +23,8 @@ import javafx.event.ActionEvent;
 import javafx.event.EventHandler;
 import javafx.geometry.Insets;
 import javafx.scene.Scene;
+import javafx.scene.control.Alert;
+import javafx.scene.control.Alert.AlertType;
 import javafx.scene.control.Button;
 import javafx.scene.layout.GridPane;
 import javafx.scene.layout.HBox;
@@ -30,17 +33,32 @@ import javafx.scene.layout.VBox;
 import javafx.stage.Stage;
 import javafx.scene.control.ComboBox;
 import javafx.scene.control.Label;
+import javafx.scene.control.Menu;
+import javafx.scene.control.MenuBar;
+import javafx.scene.control.MenuItem;
 import javafx.scene.control.ScrollPane;
 import javafx.scene.control.Separator;
 import javafx.scene.control.TextArea;
+import javafx.scene.control.TextInputDialog;
 import javafx.scene.control.ToggleButton;
 import javafx.scene.image.Image;
 import javafx.scene.image.ImageView;
 
-//TODO Make new entry/edit entry page look better so that activities don't overlap
-//TODO Custom buttons for activities.
-//TODO Ability to add your own activities
-//TODO Scrollbar for activities, or just some better way of displaying them on new entry page
+// TODO Custom buttons for activities?
+// TODO Make sure entryArea text is valid (0 characters?)
+// TODO Make sure New Activity text is always valid
+// TODO Make sure pressing cancel on New Activity or Delete Activity prompts doesn't cause errors, and that input is always valid
+// TODO Make sure for deleting an entry, that the date is in the correct format, nothing else is entered, etc.
+// TODO Make sure for deleting an activity or entry, or adding an activity, that leaving it blank is accounted for
+// TODO Force activity name and the filepath to be only one line long (no pressing enter, tab, etc)
+// TODO Add days in a row counter?
+// TODO Add a back button to applicable scenes
+// TODO Show top 3 lowest activities, and 3 highest
+// TODO Exit button in the file menu
+// TODO Clean up the code, separate into methods if possible, add instance variables as appropriate
+// TODO Java-doc that ish
+// TODO MAke sure each variable is public/private appropriately
+// TODO Clean and javadoc the Activity and JournalEntry classes
 
 public class Journal extends Application {
 
@@ -53,6 +71,8 @@ public class Journal extends Application {
 	/* Scene used to enter a new journal entry, happiness, and activities. **/
 	Scene newEntryScene;
 
+	Scene journalScene;
+
 	/* Button in the date-entering scene to move on to the journal entry scene. **/
 	Button submitDateButton;
 
@@ -64,10 +84,6 @@ public class Journal extends Application {
 	/* Button in the journal entry scene, used to save the entry once everything is filled out. **/
 	Button submitButton;
 
-	/* The total number of activities that have been created. **/
-	// TODO make it so array is only as big as total activities
-	int totalActivities = 23;
-
 	/* List that holds all the activities that have been read and created from the activities.txt text document. **/
 	ArrayList<Activity> activityList;
 
@@ -75,8 +91,16 @@ public class Journal extends Application {
 	ArrayList<JournalEntry> entryList = new ArrayList<JournalEntry>();
 
 	/* Array that holds all the activity buttons in the journal entry scene. **/
-	// TODO Change to ArrayList
 	ArrayList<ToggleButton> activityButtons;
+
+	TextArea entryArea;
+
+	ComboBox<String> happinessBox;
+
+	MenuBar menuBar;
+	MenuItem newEntryMenu;
+	MenuItem backupMenu;
+	MenuItem deleteMenu;
 
 	/*
 	 * The main function. This just starts the program by calling the launch method.
@@ -112,6 +136,53 @@ public class Journal extends Application {
 				fileIn.close();
 			}
 		}
+	}
+
+	/*
+	 * Saves a given activity to the "activities.txt" file, which is loaded upon startup, and modified during runtime.
+	 */
+	public void saveActivityToFile(Activity act) {
+		BufferedWriter buffWrite = null;
+		FileWriter fileWrite = null;
+		try {
+			fileWrite = new FileWriter("activities.txt", true);
+			buffWrite = new BufferedWriter(fileWrite);
+
+			buffWrite.newLine();
+			buffWrite.write(act.getActivityName());
+			buffWrite.newLine();
+			buffWrite.write(act.getOnPath());
+			buffWrite.newLine();
+			buffWrite.write(act.getOffPath());
+			buffWrite.newLine();
+			buffWrite.write("0");
+		} catch (IOException e) {
+			e.printStackTrace();
+		} finally {
+			// Make sure to close your writers!
+			try {
+				if (buffWrite != null) {
+					buffWrite.close();
+				}
+				if (fileWrite != null) {
+					fileWrite.close();
+				}
+			} catch (IOException e) {
+				e.printStackTrace();
+			}
+		}
+	}
+
+	public int deleteActivityByName(String actName) {
+		int activityIndex = 0;
+		for (Activity act : activityList) {
+			if (act.getActivityName().equals(actName)) {
+				activityList.remove(act);
+				return activityIndex;
+			}
+			activityIndex++;
+		}
+		return -1;
 	}
 
 	/*
@@ -200,7 +271,9 @@ public class Journal extends Application {
 				buffWrite.write(act.getOffPath());
 				buffWrite.newLine();
 				buffWrite.write("" + act.getScore());
-				buffWrite.newLine();
+				if (!act.equals(activityList.get(activityList.size() - 1))) {
+					buffWrite.newLine();
+				}
 			}
 			System.out.println("Written to file: \"activities.txt\"");
 		} catch (IOException e) {
@@ -283,10 +356,8 @@ public class Journal extends Application {
 	 */
 	@Override
 	public void start(Stage primaryStage) throws Exception {
-		// First, read all the activities from the saved file so they can be used.
+		// Read all the activities from the saved file so they can be used.
 		readActivitiesFromFile("activities.txt");
-		// Second, read all the entries from the entries folder so they can be read, edited, etc.
-		readEntriesFromFile();
 
 		// The main window is now assigned to the window variable, since "window" makes more sense than "stage" to me.
 		window = primaryStage;
@@ -417,7 +488,7 @@ public class Journal extends Application {
 		Label entryLabel = new Label("Journal Entry");
 
 		// Create a TextArea for entering the text of the journal entry.
-		TextArea entryArea = new TextArea();
+		entryArea = new TextArea();
 		entryArea.setPrefHeight(600);
 		entryArea.setPrefWidth(400);
 		entryArea.setWrapText(true);
@@ -427,7 +498,7 @@ public class Journal extends Application {
 
 		// The user can select a happiness to rate their day, and this will later be used to see what activities are done on positive or negative days.
 		Label happinessLabel = new Label("Happiness Today:");
-		ComboBox<String> happinessBox = new ComboBox<>();
+		happinessBox = new ComboBox<>();
 		// Ratings are on a 1-5 scale.
 		happinessBox.getItems().addAll("1", "2", "3", "4", "5");
 		// Makes sure that both a happiness is selected, and the user hasn't exceeded the character limit.
@@ -458,16 +529,103 @@ public class Journal extends Application {
 				}
 			}
 		});
-		// Creates a label and buttons for a bunch of activities that the user can select, depending on what they did that day.
-		Label activityLabel = new Label("Activities:");
-		// Only create as many buttons as activities.
-		activityButtons = new ArrayList<ToggleButton>();
-		// Adds a ScrollPane which contains a TilePane of the activity buttons
-		ScrollPane scrollPane = new ScrollPane();
 		TilePane actLayout = new TilePane();
 		actLayout.setVgap(10);
 		actLayout.setHgap(10);
 		actLayout.setPadding(new Insets(10, 10, 10, 10));
+		// Real quick, gonna sneak in a new scene for adding a new activity here.
+		// SCENE: NEW ACTIVITY
+		VBox newActLayout = new VBox(10);
+		Label nameLabel = new Label("Enter Activity Name Here: ");
+		TextArea activityNameArea = new TextArea();
+		Label onPathLabel = new Label("Enter filepath for the \"on\" button icon: ");
+		TextArea onPathArea = new TextArea();
+		Label offPathLabel = new Label("Enter filepath for the \"off\" button icon: ");
+		TextArea offPathArea = new TextArea();
+		Button submitActButton = new Button("Submit");
+		submitActButton.setOnAction(new EventHandler<ActionEvent>() {
+			@Override
+			public void handle(ActionEvent arg0) {
+				Activity newAct = new Activity(activityNameArea.getText(), onPathArea.getText(), offPathArea.getText());
+				saveActivityToFile(newAct);
+				actLayout.getChildren().clear();
+				activityList.clear();
+				readActivitiesFromFile("activities.txt");
+				for (Activity act : activityList) {
+					if (act != null) {
+						// Each activity creates a new toggle button with the activity's name on it.
+						ToggleButton toggle = new ToggleButton();
+						toggle.setText(act.getActivityName());
+						Image selected = new Image("on.png");
+						Image unselected = new Image("off.png");
+						ImageView toggleImage = new ImageView();
+						toggle.setGraphic(toggleImage);
+						// When the button is clicked, the image for it changes between the "on" and "off" states so the user can see what they selected.
+						toggleImage.imageProperty().bind(Bindings.when(toggle.selectedProperty()).then(selected).otherwise(unselected));
+						// Adds the button to the TilePane.
+						actLayout.getChildren().add(toggle);
+						// Adds the toggle button to an array so it can be easily accessed, with the first button in activityButtons corresponding with the first activity in activityList.
+						activityButtons.add(toggle);
+					}
+				}
+				primaryStage.setScene(newEntryScene);
+			}
+		});
+		newActLayout.getChildren().addAll(nameLabel, activityNameArea, onPathLabel, onPathArea, offPathLabel, offPathArea, submitActButton);
+		Scene newActScene = new Scene(newActLayout, 400, 900);
+
+		// Creates a label and buttons for a bunch of activities that the user can select, depending on what they did that day.
+		Button newActivityButton = new Button("New Activity");
+		newActivityButton.setOnAction(new EventHandler<ActionEvent>() {
+			@Override
+			public void handle(ActionEvent event) {
+				activityNameArea.clear();
+				onPathArea.clear();
+				offPathArea.clear();
+				primaryStage.setScene(newActScene);
+			}
+		});
+
+		Button deleteActivityButton = new Button("Delete Activity");
+		deleteActivityButton.setOnAction(new EventHandler<ActionEvent>() {
+			@Override
+			public void handle(ActionEvent arg0) {
+				TextInputDialog textDialog = new TextInputDialog();
+				textDialog.setTitle("Delete Activity");
+				textDialog.setHeaderText("Delete Activity by Name");
+				textDialog.setContentText("Please enter the name of the activity you want to remove: ");
+
+				int removeIndex = -1;
+				Optional<String> result = textDialog.showAndWait();
+				if (result.isPresent()) {
+					removeIndex = deleteActivityByName(result.get());
+				} else {
+					Alert alert = new Alert(AlertType.WARNING);
+					alert.setTitle("Warning!");
+					alert.setHeaderText("Your input was invalid!");
+					alert.setContentText("Please enter a valid name to delete an activity. (Case matters!)");
+					alert.showAndWait();
+				}
+
+
+
+
+
+
+
+
+				//TODO TODO TODO
+				if (removeIndex != -1) {
+					updateActivities();
+					actLayout.getChildren().remove(removeIndex);
+					activityButtons.remove(removeIndex);
+				}
+			}
+		});
+		// Only create as many buttons as activities.
+		activityButtons = new ArrayList<ToggleButton>();
+		// Adds a ScrollPane which contains a TilePane of the activity buttons
+		ScrollPane scrollPane = new ScrollPane();
 		for (Activity act : activityList) {
 			if (act != null) {
 				// Each activity creates a new toggle button with the activity's name on it.
@@ -506,6 +664,8 @@ public class Journal extends Application {
 				}
 				newEntry.addActivityList(entryActivitiesList);
 				saveEntryToFile(newEntry);
+				refreshEntries();
+				primaryStage.setScene(journalScene);
 			}
 		});
 		// Adds all the elements to the new entry layout, completing the scene.
@@ -514,25 +674,29 @@ public class Journal extends Application {
 		newEntryLayout.add(charLabel, 0, 2);
 		newEntryLayout.add(happinessLabel, 0, 3);
 		newEntryLayout.add(happinessBox, 1, 3);
-		newEntryLayout.add(activityLabel, 0, 4);
+		newEntryLayout.add(newActivityButton, 0, 4);
+		newEntryLayout.add(deleteActivityButton, 1, 4);
 		newEntryLayout.add(submitButton, 1, 0);
 		newEntryScene = new Scene(newEntryLayout, 1200, 900);
 
-		// SCENE: READ JOURNAL ENTRIES
-		VBox entryLayout = new VBox(10);
-		entryLayout.setPadding(new Insets(10, 10, 10, 10));
-
-		// Add listener to change scene to select a date when the "New Entry" button is pressed
-		Button newEntryButton = new Button("New Entry");
-		newEntryButton.setOnAction(new EventHandler<ActionEvent>() {
+		menuBar = new MenuBar();
+		Menu fileMenu = new Menu("File");
+		newEntryMenu = new MenuItem("New Entry");
+		newEntryMenu.setOnAction(new EventHandler<ActionEvent>() {
 			@Override
 			public void handle(ActionEvent event) {
-				primaryStage.setScene(dateEntryScene);
+				entryArea.clear();
+				happinessBox.getSelectionModel().select(null);
+				for (ToggleButton toggle : activityButtons) {
+					if (toggle.isSelected()) {
+						toggle.setSelected(false);
+					}
+				}
+				window.setScene(dateEntryScene);
 			}
 		});
-		// Gonna be honest, not totally sure how this works. Essentially though, it takes the files contained inside "entries/", and sends them to a zip file (backup.zip).
-		Button backupButton = new Button("Backup Entries");
-		backupButton.setOnAction(new EventHandler<ActionEvent>() {
+		backupMenu = new MenuItem("Backup Entries");
+		backupMenu.setOnAction(new EventHandler<ActionEvent>() {
 			@Override
 			public void handle(ActionEvent arg0) {
 				File f = new File("backup.zip");
@@ -560,14 +724,67 @@ public class Journal extends Application {
 				}
 			}
 		});
-		entryLayout.getChildren().addAll(newEntryButton, backupButton);
+		deleteMenu = new MenuItem("Delete Entry");
+		deleteMenu.setOnAction(new EventHandler<ActionEvent>() {
+			@Override
+			public void handle(ActionEvent event) {
+				TextInputDialog textDialog = new TextInputDialog();
+				textDialog.setTitle("Delete Entry");
+				textDialog.setHeaderText("Delete Entry by Date");
+				textDialog.setContentText("Please enter the date of the entry you want to remove (MM/DD/YYYY): ");
+
+				int removeIndex = -1;
+				Optional<String> result = textDialog.showAndWait();
+				if (result.isPresent()) {
+					//TODO Make sure format is in MM/DD/YYYY
+					String[] dateArray = result.get().split("/");
+					int month = Integer.parseInt(dateArray[0]);
+					int day = Integer.parseInt(dateArray[1]);
+					int year = Integer.parseInt(dateArray[2]);
+					String fileName = "" + month + day + year;
+					File entryFile = new File("entries/" + fileName + ".txt");
+					if (entryFile.exists() && !entryFile.isDirectory()) {
+						entryFile.delete();
+						refreshEntries();
+						primaryStage.setScene(journalScene);
+					} else {
+						Alert alert = new Alert(AlertType.WARNING);
+						alert.setTitle("Warning!");
+						alert.setHeaderText("Entry was not found!");
+						alert.setContentText("The entry for the given date does not exist. Please verify you have the correct date!");
+						alert.showAndWait();
+					}
+				} else {
+					Alert alert = new Alert(AlertType.WARNING);
+					alert.setTitle("Warning!");
+					alert.setHeaderText("Your input was invalid!");
+					alert.setContentText("Please enter a valid date to delete an entry. (Make sure your format is correct!)");
+					alert.showAndWait();
+				}
+			}
+		});
+		menuBar.getMenus().addAll(fileMenu);
+		fileMenu.getItems().addAll(newEntryMenu, backupMenu, deleteMenu);
+		refreshEntries();
+		primaryStage.setScene(journalScene);
+		primaryStage.show();
+	}
+
+	public void refreshEntries() {
+		// SCENE: READ JOURNAL ENTRIES
+		ScrollPane scrollPane = new ScrollPane();
+		VBox entryLayout = new VBox(10);
+		entryLayout.setPadding(new Insets(10, 10, 10, 10));
+		entryLayout.getChildren().addAll(menuBar);
+		entryList.clear();
+		readEntriesFromFile();
 		for (JournalEntry entry : entryList) {
 			// Add an edit button that, when clicked, loads the data from that entry into the "new entry" scene, and then overrites it when saved.
 			Button editButton = new Button("Edit Entry");
 			editButton.setOnAction(new EventHandler<ActionEvent>() {
 				@Override
 				public void handle(ActionEvent event) {
-					primaryStage.setScene(newEntryScene);
+					window.setScene(newEntryScene);
 					entryArea.setText(entry.getText());
 					// Select the happiness level from the entry being edited.
 					happinessBox.getSelectionModel().select(entry.getHappinessLevel() - 1);
@@ -620,8 +837,7 @@ public class Journal extends Application {
 			entryLayout.getChildren().addAll(row1, entryTextArea, row3, separator);
 		}
 		// Finishes creation of the journal scene, and sets it to the startup screen.
-		Scene journalScene = new Scene(entryLayout, 600, 900);
-		primaryStage.setScene(journalScene);
-		primaryStage.show();
+		scrollPane.setContent(entryLayout);
+		journalScene = new Scene(scrollPane, 600, 900);
 	}
 }

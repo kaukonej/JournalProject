@@ -1,19 +1,19 @@
 Went Outside
 outside.png
 outsideOff.png
-2
+7
 Stayed Indoors
 inside.png
 insideOff.png
-1
+6
 Went to the Gym
 gym.png
 gymOff.png
-0
+2
 Went Running
 running.png
 runningOff.png
-0
+1
 Went Biking
 biking.png
 bikingOff.png
@@ -29,7 +29,7 @@ fastfoodOff.png
 Made a Meal
 cook.png
 cookOff.png
--1
+0
 Met with Friends
 friends.png
 friendsOff.png
@@ -89,4 +89,8 @@ movieOff.png
 Listened to music
 headphones.png
 headphonesOff.png
-0
+1
+Read Manga
+manga.png
+mangaOff.png
+1
