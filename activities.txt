@@ -1,0 +1,92 @@
+Went Outside
+outside.png
+outsideOff.png
+2
+Stayed Indoors
+inside.png
+insideOff.png
+1
+Went to the Gym
+gym.png
+gymOff.png
+0
+Went Running
+running.png
+runningOff.png
+0
+Went Biking
+biking.png
+bikingOff.png
+0
+Went Swimming
+swimming.png
+swimmingOff.png
+0
+Ate Out
+fastfood.png
+fastfoodOff.png
+0
+Made a Meal
+cook.png
+cookOff.png
+-1
+Met with Friends
+friends.png
+friendsOff.png
+0
+Spent time with family
+family.png
+familyOff.png
+0
+Played games
+gaming.png
+gamingOff.png
+0
+Did Something Creative
+imagination.png
+imaginationOff.png
+0
+Did Homework
+homework.png
+homeworkOff.png
+0
+Worked hard at job
+work.png
+workOff.png
+0
+Treated Self
+treat.png
+treatOff.png
+0
+Took Care of Pet
+dogcat.png
+dogcatOff.png
+0
+Read a Book
+book.png
+bookOff.png
+0
+Went to Class
+class.png
+classOff.png
+0
+Cleaned Up the House
+clean.png
+cleanOff.png
+0
+Spent time with SO
+heart.png
+heartOff.png
+0
+Went to Church
+cross.png
+crossOff.png
+0
+Watched a movie
+movie.png
+movieOff.png
+0
+Listened to music
+headphones.png
+headphonesOff.png
+0
